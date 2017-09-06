@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.richinfo.basic.user.dao.UserDAO">
+
+	<resultMap id="BaseResultMap" type="com.richinfo.basic.user.dao.entity.User">
+		<id column="PKID" property="pkid" jdbcType="VARCHAR" />
+		<result column="USERNAME" property="username" jdbcType="VARCHAR" />
+		<result column="ACCOUNT" property="account" jdbcType="VARCHAR" />
+		<result column="PASSWORD" property="password" jdbcType="VARCHAR" />
+		<result column="PHONE" property="phone" jdbcType="VARCHAR" />
+		<result column="ID_CARD" property="idCard" jdbcType="VARCHAR" />
+		<result column="SEX" property="sex" jdbcType="VARCHAR" />
+		<result column="EMAIL" property="email" jdbcType="VARCHAR" />
+		<result column="BIRTHDAY" property="birthday" jdbcType="VARCHAR" />
+		<result column="EDUCATION" property="education" jdbcType="VARCHAR" />
+		<result column="DUTIES" property="duties" jdbcType="VARCHAR" />
+		<result column="PHOTOGRAPH" property="photograph" jdbcType="VARCHAR" />
+		<result column="ENTRY_DATE" property="entryDate" jdbcType="DATE" />
+		<result column="USER_TYPE" property="userType" jdbcType="VARCHAR" />
+		<result column="CITY" property="city" jdbcType="VARCHAR" />
+		<result column="CREATE_BY" property="createBy" jdbcType="VARCHAR" />
+		<result column="CREATE_DATE" property="createDate" jdbcType="DATE" />
+		<result column="UPDATE_BY" property="updateBy" jdbcType="VARCHAR" />
+		<result column="UPDATE_DATE" property="updateDate" jdbcType="DATE" />
+		<result column="IS_DELETED" property="isDeleted" jdbcType="VARCHAR" />
+		<result column="REMARKS" property="remarks" jdbcType="VARCHAR" />
+		<result column="DEPT" property="dept" jdbcType="VARCHAR" />
+		<result column="ORG" property="org" jdbcType="VARCHAR" />
+		<result column="ROLE" property="role" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<sql id="userColumns">
+		a.pkid AS pkid,
+		a.username AS username,
+		a.account AS account,
+		a.password AS password,
+		a.phone AS phone,
+		a.id_card,
+		a.sex AS sex,
+		a.email AS email,
+		a.birthday AS birthday,
+		a.education AS education,
+		a.duties AS duties,
+		a.PHOTOGRAPH AS PHOTOGRAPH,
+		a.entry_date,
+		a.user_type,
+		a.CITY,
+		a.create_by,
+		a.create_date,
+		a.update_by,
+		a.update_date,
+		a.is_deleted,
+		(select
+		wmsys.wm_concat(d.dept_name) dept
+		from t_base_dept_user
+		r,t_base_department d where r.dept_pk = d.pkid
+		and r.user_pk = a.pkid and r.is_deleted='0')
+		dept,
+		(select
+		wmsys.wm_concat(d.role_name) role from t_base_role_user
+		r,t_base_role d
+		where r.role_pk= d.pkid and r.user_pk = a.pkid and r.is_deleted='0')
+		role,
+		(select
+		wmsys.wm_concat(d.org_name) org from t_base_org_user
+		r,t_base_organization d where r.org_pk= d.pkid and r.user_pk = a.pkid
+		and r.is_deleted='0')
+		org,
+		a.remarks AS remarks
+	</sql>
+
+	<sql id="Joins">
+	</sql>
+
+	<select id="get" resultMap="BaseResultMap">
+		SELECT
+		<include refid="userColumns" />
+		FROM t_base_user a
+		<include refid="Joins" />
+		WHERE a.is_deleted = '0' AND a.pkid = #{pkid}
+	</select>
+
+	<select id="getUserByAccountOrPhone" resultMap="BaseResultMap" parameterType="Map">
+		SELECT <include refid="userColumns" />
+		FROM t_base_user a <include refid="Joins" />
+		WHERE a.is_deleted = '0' AND (a.account = #{account} OR a.phone = #{account}) AND a.password = #{password}
+	</select>
+
+	<select id="getUnique" resultMap="BaseResultMap">
+		SELECT
+		<include refid="userColumns" />
+		FROM t_base_user a
+		<include refid="Joins" />
+		<where>
+			a.IS_DELETED = 0
+			<if test="username != null and username != ''">
+				AND a.USERNAME = #{username}
+			</if>
+			<if test="account != null and account != ''">
+				AND a.ACCOUNT = #{account}
+			</if>
+			<if test="phone != null and phone != ''">
+				AND a.PHONE = #{phone}
+			</if>
+			<if test="email != null and email != ''">
+				AND a.EMAIL = #{email}
+			</if>
+			<if test="pkid != null and pkid != ''">
+				AND a.PKID = #{pkid}
+			</if>
+		</where>
+	</select>
+
+	<select id="findList" resultMap="BaseResultMap">
+		select * from (
+		SELECT rownum rn,
+		<include refid="userColumns" />
+		FROM t_base_user a
+		<where>
+			a.IS_DELETED = 0
+			<if test="username != null and username != ''">
+				AND a.USERNAME like #{username}||'%'
+			</if>
+			<if test="account != null and account != ''">
+				AND a.ACCOUNT like #{account}||'%'
+			</if>
+			<if test="phone != null and phone != ''">
+				AND a.PHONE like #{phone}||'%'
+			</if>
+			<if test="email != null and email != ''">
+				AND a.EMAIL = #{email}
+			</if>
+			<if test="pkid != null and pkid != ''">
+				AND a.PKID = #{pkid}
+			</if>
+
+			<if test="page !=null and page.endRow != null and page.endRow != ''">
+				and rownum  <![CDATA[<=]]>
+				#{page.endRow}
+			</if>
+
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date desc
+			</otherwise>
+		</choose>
+		) where 1=1
+		<if test="page !=null and page.startRow != null and page.startRow != ''">
+			and rn  <![CDATA[>=]]>
+			#{page.startRow}
+		</if>
+
+	</select>
+
+	<select id="count" resultType="Integer">
+		SELECT count(1) FROM t_base_user a
+		<where>
+			a.IS_DELETED = 0
+			<if test="username != null and username != ''">
+				AND a.USERNAME like #{username}||'%'
+			</if>
+			<if test="account != null and account != ''">
+				AND a.ACCOUNT like #{account}||'%'
+			</if>
+			<if test="phone != null and phone != ''">
+				AND a.PHONE like #{phone}||'%'
+			</if>
+			<if test="email != null and email != ''">
+				AND a.EMAIL = #{email}
+			</if>
+			<if test="pkid != null and pkid != ''">
+				AND a.PKID = #{pkid}
+			</if>
+		</where>
+	</select>
+
+	<select id="findAllList" resultMap="BaseResultMap">
+		SELECT
+		<include refid="userColumns" />
+		FROM t_base_user a
+		<where>
+			a.IS_DELETED = 0
+			<if test="username != null and username != ''">
+				AND a.USERNAME = #{username}
+			</if>
+			<if test="account != null and account != ''">
+				AND a.ACCOUNT = #{account}
+			</if>
+			<if test="phone != null and phone != ''">
+				AND a.PHONE = #{phone}
+			</if>
+			<if test="email != null and email != ''">
+				AND a.EMAIL = #{email}
+			</if>
+		</where>
+		<choose>
+			<when test="page !=null and page.orderBy != null and page.orderBy != ''">
+				ORDER BY ${page.orderBy}
+			</when>
+			<otherwise>
+				ORDER BY a.create_date desc
+			</otherwise>
+		</choose>
+	</select>
+
+	<select id="findUsersByOrgpk" resultMap="BaseResultMap">
+		SELECT
+		<include refid="userColumns" />
+		FROM T_BASE_USER a
+		<where>
+			a.IS_DELETED = 0 AND a.pkid IN (
+			SELECT USER_PK FROM
+			T_BASE_ORG_USER WHERE IS_DELETED = 0 AND ORG_PK =
+			#{orgpk,jdbcType=VARCHAR}
+			)
+		</where>
+		ORDER BY a.create_date desc
+	</select>
+
+	<select id="findUsersByUserpk" resultMap="BaseResultMap">
+		SELECT DISTINCT
+		<include refid="userColumns" />
+		FROM t_base_user a,t_base_org_user b
+		<where>
+			a.pkid = b.user_pk AND b.is_deleted = '0' AND a.is_deleted =
+			'0' AND b.org_pk IN (
+			SELECT org_pk FROM t_base_org_user WHERE is_deleted = '0' AND user_pk=
+			#{userpk,jdbcType=VARCHAR})
+		</where>
+		ORDER BY a.create_date DESC
+	</select>
+
+	<select id="findUsersByDistrict" resultMap="BaseResultMap">
+		SELECT
+		<include refid="userColumns" />
+		FROM t_base_user a, t_base_org_user b, t_base_organization c
+		<where>
+			a.pkid = b.user_pk AND b.org_pk = c.pkid
+			AND b.is_deleted = '0' AND a.is_deleted = '0' AND c.is_deleted = '0'
+			AND c.district = #{district, jdbcType=VARCHAR}
+		</where>
+		ORDER BY c.sort_flag ASC
+	</select>
+
+	<insert id="insert">
+		insert into T_BASE_USER (PKID, USERNAME, ACCOUNT,
+		PASSWORD, PHONE, ID_CARD,
+		SEX, EMAIL, BIRTHDAY,
+		USER_TYPE, CREATE_BY,
+		CREATE_DATE,
+		UPDATE_BY, UPDATE_DATE, IS_DELETED,
+		REMARKS, EDUCATION,
+		DUTIES,
+		ENTRY_DATE,PHOTOGRAPH,CITY)
+		values (#{pkid,jdbcType=VARCHAR},
+		#{username,jdbcType=VARCHAR},
+		#{account,jdbcType=VARCHAR},
+		#{password,jdbcType=VARCHAR}, #{phone,jdbcType=VARCHAR},
+		#{idCard,jdbcType=VARCHAR},
+		#{sex,jdbcType=VARCHAR},
+		#{email,jdbcType=VARCHAR},
+		#{birthday,jdbcType=TIMESTAMP},
+		#{userType,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR},
+		#{createDate,jdbcType=TIMESTAMP},
+		#{updateBy,jdbcType=VARCHAR},
+		#{updateDate,jdbcType=TIMESTAMP},
+		#{isDeleted,jdbcType=VARCHAR},
+		#{remarks,jdbcType=VARCHAR}, #{education,jdbcType=VARCHAR},
+		#{duties,jdbcType=VARCHAR},
+		#{entryDate,jdbcType=TIMESTAMP},
+		#{photograph,jdbcType=VARCHAR},#{city,jdbcType=VARCHAR})
+	</insert>
+
+	<insert id="insertBatch" parameterType="List">
+		insert into T_BASE_USER (PKID, USERNAME, ACCOUNT,
+		PASSWORD, PHONE,
+		ID_CARD,
+		SEX, EMAIL, BIRTHDAY,
+		USER_TYPE, CREATE_BY, CREATE_DATE,
+		UPDATE_BY, UPDATE_DATE, IS_DELETED,
+		REMARKS, EDUCATION, DUTIES,
+		ENTRY_DATE,PHOTOGRAPH,CITY)
+		<foreach collection="list" item="item" index="index"
+			separator="union all">
+			select #{item.pkid,jdbcType=VARCHAR},
+			#{item.username,jdbcType=VARCHAR},
+			#{item.account,jdbcType=VARCHAR},
+			#{item.password,jdbcType=VARCHAR}, #{item.phone,jdbcType=VARCHAR},
+			#{item.idCard,jdbcType=VARCHAR},
+			#{item.sex,jdbcType=VARCHAR},
+			#{item.email,jdbcType=VARCHAR},
+			#{item.birthday,jdbcType=TIMESTAMP},
+			#{item.userType,jdbcType=VARCHAR}, #{item.createBy,jdbcType=VARCHAR},
+			#{item.createDate,jdbcType=TIMESTAMP},
+			#{item.updateBy,jdbcType=VARCHAR},
+			#{item.updateDate,jdbcType=TIMESTAMP},
+			#{item.isDeleted,jdbcType=VARCHAR},
+			#{item.remarks,jdbcType=VARCHAR},
+			#{item.education,jdbcType=VARCHAR}, #{item.duties,jdbcType=VARCHAR},
+			#{item.entryDate,jdbcType=TIMESTAMP},#{item.photograph,jdbcType=VARCHAR,#{item.city,jdbcType=VARCHAR}}
+			from dual
+		</foreach>
+	</insert>
+	<!-- values <foreach collection="list" item="item" index="index" separator=","> 
+		(#{item.pkid,jdbcType=VARCHAR}, #{item.authorityCode,jdbcType=VARCHAR}, #{item.authorityName,jdbcType=VARCHAR}, 
+		#{item.authorityDesc,jdbcType=VARCHAR}, #{item.authorityUrl,jdbcType=VARCHAR}, 
+		#{item.parentId,jdbcType=VARCHAR}, #{item.genealogyPath,jdbcType=VARCHAR}, 
+		#{item.sortFlag,jdbcType=VARCHAR}, #{item.createBy,jdbcType=VARCHAR}, #{item.createDate,jdbcType=TIMESTAMP}, 
+		#{item.updateBy,jdbcType=VARCHAR}, #{item.updateDate,jdbcType=TIMESTAMP}, 
+		#{item.isDeleted,jdbcType=VARCHAR}, #{item.remarks,jdbcType=VARCHAR}, #{item.iconUrl,jdbcType=VARCHAR}) 
+		</foreach> -->
+
+	<update id="update" parameterType="com.richinfo.basic.user.dao.entity.User">
+		update t_base_user
+		set USERNAME
+		= #{username,jdbcType=VARCHAR},
+		ACCOUNT = #{account,jdbcType=VARCHAR},
+		PASSWORD = #{password,jdbcType=VARCHAR},
+		PHONE =
+		#{phone,jdbcType=VARCHAR},
+		ID_CARD = #{idCard,jdbcType=VARCHAR},
+		SEX =
+		#{sex,jdbcType=VARCHAR},
+		EMAIL = #{email,jdbcType=VARCHAR},
+		BIRTHDAY =
+		#{birthday,jdbcType=TIMESTAMP},
+		USER_TYPE =
+		#{userType,jdbcType=VARCHAR},
+		CREATE_BY = #{createBy,jdbcType=VARCHAR},
+		CREATE_DATE = #{createDate,jdbcType=TIMESTAMP},
+		UPDATE_BY =
+		#{updateBy,jdbcType=VARCHAR},
+		UPDATE_DATE =
+		#{updateDate,jdbcType=TIMESTAMP},
+		IS_DELETED =
+		#{isDeleted,jdbcType=VARCHAR},
+		REMARKS = #{remarks,jdbcType=VARCHAR},
+		EDUCATION = #{education,jdbcType=VARCHAR},
+		DUTIES =
+		#{duties,jdbcType=VARCHAR},
+		ENTRY_DATE = q
+		#{entryDate,jdbcType=TIMESTAMP},
+		PHOTOGRAPH =
+		#{photograph,jdbcType=VARCHAR},
+		CITY =
+		#{city,jdbcType=VARCHAR}
+		where PKID = #{pkid,jdbcType=VARCHAR}
+	</update>
+
+	<update id="updateBatch" parameterType="List">
+		<foreach collection="list" item="item" index="index" open="begin"
+			close=";end;" separator=";">
+			update t_base_user
+			set USERNAME =
+			#{item.username,jdbcType=VARCHAR},
+			ACCOUNT =
+			#{item.account,jdbcType=VARCHAR},
+			PASSWORD =
+			#{item.password,jdbcType=VARCHAR},
+			PHONE =
+			#{item.phone,jdbcType=VARCHAR},
+			ID_CARD =
+			#{item.idCard,jdbcType=VARCHAR},
+			SEX = #{item.sex,jdbcType=VARCHAR},
+			EMAIL = #{item.email,jdbcType=VARCHAR},
+			BIRTHDAY =
+			#{item.birthday,jdbcType=TIMESTAMP},
+			USER_TYPE =
+			#{item.userType,jdbcType=VARCHAR},
+			CREATE_BY =
+			#{item.createBy,jdbcType=VARCHAR},
+			CREATE_DATE =
+			#{item.createDate,jdbcType=TIMESTAMP},
+			UPDATE_BY =
+			#{item.updateBy,jdbcType=VARCHAR},
+			UPDATE_DATE =
+			#{item.updateDate,jdbcType=TIMESTAMP},
+			IS_DELETED =
+			#{item.isDeleted,jdbcType=VARCHAR},
+			REMARKS =
+			#{item.remarks,jdbcType=VARCHAR},
+			EDUCATION =
+			#{item.education,jdbcType=VARCHAR},
+			DUTIES =
+			#{item.duties,jdbcType=VARCHAR},
+			ENTRY_DATE =
+			#{item.entryDate,jdbcType=TIMESTAMP},
+			PHOTOGRAPH =
+			#{item.photograph,jdbcType=VARCHAR},
+			CITY =
+			#{item.city,jdbcType=VARCHAR}
+			where PKID =
+			#{item.pkid,jdbcType=VARCHAR}
+		</foreach>
+	</update>
+
+	<update id="updateSelective" parameterType="com.richinfo.basic.user.dao.entity.User">
+		update t_base_user
+		<set>
+			<if test="username != null">
+				USERNAME = #{username,jdbcType=VARCHAR},
+			</if>
+			<if test="account != null">
+				ACCOUNT = #{account,jdbcType=VARCHAR},
+			</if>
+			<if test="password != null">
+				PASSWORD = #{password,jdbcType=VARCHAR},
+			</if>
+			<if test="phone != null">
+				PHONE = #{phone,jdbcType=VARCHAR},
+			</if>
+			<if test="idCard != null">
+				ID_CARD = #{idCard,jdbcType=VARCHAR},
+			</if>
+			<if test="sex != null">
+				SEX = #{sex,jdbcType=VARCHAR},
+			</if>
+			<if test="email != null">
+				EMAIL = #{email,jdbcType=VARCHAR},
+			</if>
+			<if test="birthday != null">
+				BIRTHDAY = #{birthday,jdbcType=TIMESTAMP},
+			</if>
+			<if test="userType != null">
+				USER_TYPE = #{userType,jdbcType=VARCHAR},
+			</if>
+			<if test="createBy != null">
+				CREATE_BY = #{createBy,jdbcType=VARCHAR},
+			</if>
+			<if test="createDate != null">
+				CREATE_DATE = #{createDate,jdbcType=TIMESTAMP},
+			</if>
+			<if test="updateBy != null">
+				UPDATE_BY = #{updateBy,jdbcType=VARCHAR},
+			</if>
+			<if test="updateDate != null">
+				UPDATE_DATE = #{updateDate,jdbcType=TIMESTAMP},
+			</if>
+			<if test="isDeleted != null">
+				IS_DELETED = #{isDeleted,jdbcType=VARCHAR},
+			</if>
+			<if test="remarks != null">
+				REMARKS = #{remarks,jdbcType=VARCHAR},
+			</if>
+			<if test="education != null">
+				EDUCATION = #{education,jdbcType=VARCHAR},
+			</if>
+			<if test="duties != null">
+				DUTIES = #{duties,jdbcType=VARCHAR},
+			</if>
+			<if test="entryDate != null">
+				ENTRY_DATE = #{entryDate,jdbcType=TIMESTAMP},
+			</if>
+			<if test="photograph != null">
+				PHOTOGRAPH = #{photograph,jdbcType=VARCHAR},
+			</if>
+			<if test="city != null">
+				CITY =
+				#{city,jdbcType=VARCHAR},
+			</if>
+
+		</set>
+		where PKID = #{pkid,jdbcType=VARCHAR}
+	</update>
+
+	<update id="updateSelectiveBatch" parameterType="List">
+		<foreach collection="list" item="item" index="index" open="begin"
+			close=";end;" separator=";">
+			update t_base_user
+			<set>
+				<if test="item.username != null">
+					USERNAME = #{item.username,jdbcType=VARCHAR},
+				</if>
+				<if test="item.account != null">
+					ACCOUNT = #{item.account,jdbcType=VARCHAR},
+				</if>
+				<if test="item.password != null">
+					PASSWORD = #{item.password,jdbcType=VARCHAR},
+				</if>
+				<if test="item.phone != null">
+					PHONE = #{item.phone,jdbcType=VARCHAR},
+				</if>
+				<if test="item.idCard != null">
+					ID_CARD = #{item.idCard,jdbcType=VARCHAR},
+				</if>
+				<if test="item.sex != null">
+					SEX = #{item.sex,jdbcType=VARCHAR},
+				</if>
+				<if test="item.email != null">
+					EMAIL = #{item.email,jdbcType=VARCHAR},
+				</if>
+				<if test="item.birthday != null">
+					BIRTHDAY = #{item.birthday,jdbcType=TIMESTAMP},
+				</if>
+				<if test="item.userType != null">
+					USER_TYPE = #{item.userType,jdbcType=VARCHAR},
+				</if>
+				<if test="item.createBy != null">
+					CREATE_BY = #{item.createBy,jdbcType=VARCHAR},
+				</if>
+				<if test="item.createDate != null">
+					CREATE_DATE = #{item.createDate,jdbcType=TIMESTAMP},
+				</if>
+				<if test="item.updateBy != null">
+					UPDATE_BY = #{item.updateBy,jdbcType=VARCHAR},
+				</if>
+				<if test="item.updateDate != null">
+					UPDATE_DATE = #{item.updateDate,jdbcType=TIMESTAMP},
+				</if>
+				<if test="item.isDeleted != null">
+					IS_DELETED = #{item.isDeleted,jdbcType=VARCHAR},
+				</if>
+				<if test="item.remarks != null">
+					REMARKS = #{item.remarks,jdbcType=VARCHAR},
+				</if>
+				<if test="item.education != null">
+					EDUCATION = #{item.education,jdbcType=VARCHAR},
+				</if>
+				<if test="item.duties != null">
+					DUTIES = #{item.duties,jdbcType=VARCHAR},
+				</if>
+				<if test="item.entryDate != null">
+					ENTRY_DATE = #{item.entryDate,jdbcType=TIMESTAMP},
+				</if>
+				<if test="item.photograph != null">
+					PHOTOGRAPH = #{item.photograph,jdbcType=VARCHAR},
+				</if>
+				<if test="city != null">
+				CITY =
+				#{item.city,jdbcType=VARCHAR},
+			</if>
+			</set>
+			where PKID = #{item.pkid,jdbcType=VARCHAR}
+		</foreach>
+	</update>
+
+	<update id="delete">
+		update t_base_user set IS_DELETED = 1 where PKID =
+		#{pkid}
+	</update>
+
+	<update id="deleteEntity" parameterType="com.richinfo.basic.user.dao.entity.User">
+		update t_base_user a set IS_DELETED = 1
+		<where>
+			1 = 1
+			<if test="username != null and username != ''">
+				AND a.USERNAME = #{username}
+			</if>
+			<if test="account != null and account != ''">
+				AND a.ACCOUNT = #{account}
+			</if>
+			<if test="phone != null and phone != ''">
+				AND a.PHONE = #{phone}
+			</if>
+			<if test="email != null and email != ''">
+				AND a.EMAIL = #{email}
+			</if>
+			<if test="pkid != null and pkid != ''">
+				AND a.PKID = #{pkid}
+			</if>
+		</where>
+	</update>
+
+	<update id="deleteBatch" parameterType="List">
+		update t_base_user set IS_DELETED = 1 where PKID in
+		<foreach collection="list" index="index" item="item" open="("
+			close=")" separator=",">
+			#{item.pkid}
+		</foreach>
+	</update>
+
+	<select id="getBindRoles" resultType="Map">
+		SELECT ROLE_PK, USER_PK
+		FROM t_base_role_user a
+		WHERE a.is_deleted = '0' AND a.USER_PK =
+		#{pkid}
+	</select>
+
+</mapper>
