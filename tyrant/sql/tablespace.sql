@@ -1,0 +1,1 @@
+CREATE TABLESPACE platform_base DATAFILE '/usr/oracle/platform_base.ora' SIZE 1000M;

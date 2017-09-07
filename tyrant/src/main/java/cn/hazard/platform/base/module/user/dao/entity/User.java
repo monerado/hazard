@@ -58,7 +58,7 @@ public class User extends BaseEntity<User> {
 	private String org;
 
 	/**
-	 * 角色·
+	 * 角色
 	 */
 	private String role;
 	

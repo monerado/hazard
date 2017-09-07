@@ -21,7 +21,7 @@ public class UserServiceImpl extends BaseServiceImpl<UserDAO, User> implements U
 	private static final long serialVersionUID = 8739280752504167897L;
 
 	/**
-	 * 操作员持久化
+	 * 用户持久化
 	 */
 	@SuppressWarnings("unused")
 	@Autowired

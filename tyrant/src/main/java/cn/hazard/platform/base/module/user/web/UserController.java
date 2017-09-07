@@ -6,6 +6,7 @@ package cn.hazard.platform.base.module.user.web;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -32,7 +33,8 @@ public class UserController<E> extends BaseController<E> {
 	/**
 	 * 日志
 	 */
-//	private Logger logger = Logger.getLogger(UserController.class);
+	@SuppressWarnings("unused")
+	private Logger logger = Logger.getLogger(UserController.class);
 
 	/**
 	 * 用户业务逻辑
@@ -50,8 +52,7 @@ public class UserController<E> extends BaseController<E> {
 	 */
 	@RequestMapping(value = "/system/login", method = RequestMethod.POST)
 	@ResponseBody
-	public void login(@RequestParam(value = "account") String account, @RequestParam(value = "password") String password, 
-			HttpServletRequest request, HttpServletResponse response) {
+	public void login(@RequestParam(value = "parameter") String parameter, HttpServletRequest request, HttpServletResponse response) {
 
 //		Subject currentUser = SecurityUtils.getSubject();
 //		this.logger.info(new Md5Hash(password, account, 1).toString());
